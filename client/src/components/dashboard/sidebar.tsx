@@ -14,15 +14,13 @@ export default function Sidebar({ onClose }: SidebarProps) {
     
     return (
       <li>
-        <Link href={href}>
-          <a className={cn(
-            "flex items-center gap-2 px-3 py-2 rounded-md text-slate-300 hover:text-white",
-            isActive ? "bg-blue-600 bg-opacity-20 text-blue-400" : "hover:bg-slate-700"
-          )}>
-            <Icon className="h-5 w-5" />
-            {children}
-          </a>
-        </Link>
+        <div className={cn(
+          "flex items-center gap-2 px-3 py-2 rounded-md text-slate-300 hover:text-white cursor-pointer",
+          isActive ? "bg-blue-600 bg-opacity-20 text-blue-400" : "hover:bg-slate-700"
+        )} onClick={() => window.location.href = href}>
+          <Icon className="h-5 w-5" />
+          {children}
+        </div>
       </li>
     );
   };
