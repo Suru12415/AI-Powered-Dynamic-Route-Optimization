@@ -211,31 +211,109 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Route not found" });
       }
       
-      // Simple simulation of route optimization
-      const optimizationFactor = optimizationLevel / 100;
-      const co2Factor = co2Priority === "High" ? 1.2 : co2Priority === "Medium" ? 1.0 : 0.8;
+      // Import the Google Maps services
+      const { getOptimizedRoute } = await import('./services/googleMaps');
       
-      const optimizedDistance = route.distance * (1 - (optimizationFactor * 0.2));
-      const optimizedEfficiency = Math.min(98, route.efficiency + (optimizationFactor * 10));
-      const optimizedCO2Saved = route.co2Saved * (1 + (optimizationFactor * co2Factor * 0.3));
-      
-      const updatedRoute = await storage.updateRoute(id, {
-        distance: optimizedDistance,
-        efficiency: optimizedEfficiency,
-        co2Saved: optimizedCO2Saved,
-        optimized: true
-      });
-      
-      res.json({ 
-        success: true, 
-        route: updatedRoute,
-        optimizationDetails: {
-          distanceReduction: route.distance - optimizedDistance,
-          efficiencyImprovement: optimizedEfficiency - route.efficiency,
-          additionalCO2Saved: optimizedCO2Saved - route.co2Saved
+      try {
+        // Check if we have origin and destination coordinates or addresses
+        if (!route.coordinates || route.coordinates.length < 2) {
+          throw new Error("Route coordinates are missing");
         }
-      });
+        
+        // The first coordinate is origin, the second is destination
+        const originCoord = route.coordinates[0];
+        const destinationCoord = route.coordinates[1];
+        
+        // Swap lat/lng order for Google Maps API (it expects [lat, lng])
+        const origin: [number, number] = [originCoord[1], originCoord[0]];
+        const destination: [number, number] = [destinationCoord[1], destinationCoord[0]];
+        
+        // Get optimized route from Google Maps API
+        const optimizedRouteData = await getOptimizedRoute(
+          origin,
+          destination,
+          optimizationLevel
+        );
+        
+        // Calculate CO2 savings based on the distance reduction and co2Priority
+        const co2Factor = co2Priority === "High" ? 1.2 : co2Priority === "Medium" ? 1.0 : 0.8;
+        
+        // Calculate CO2 savings (tons)
+        // This is based on the average CO2 emissions per km for the transport type
+        const emissionsPerKm = {
+          "Air": 0.25,
+          "Ground": 0.096,
+          "Maritime": 0.012,
+          "Ground/Air": 0.18
+        };
+        const emissionFactor = emissionsPerKm[route.transportType] || 0.15;
+        
+        // Calculate original CO2 emissions (tons)
+        const originalCO2 = (route.distance * emissionFactor) / 1000;
+        
+        // Calculate new CO2 emissions (tons)
+        const newCO2 = (optimizedRouteData.distance * emissionFactor) / 1000;
+        
+        // Calculate CO2 saved with the co2 priority factor applied
+        const co2Saved = (originalCO2 - newCO2) * co2Factor;
+        
+        // Calculate efficiency improvement (percentage)
+        const efficiencyImprovement = (optimizedRouteData.savings.percentage * optimizationLevel) / 100;
+        const newEfficiency = Math.min(98, route.efficiency + efficiencyImprovement);
+        
+        // Update the route in the database with real optimized data
+        const updatedRoute = await storage.updateRoute(id, {
+          distance: optimizedRouteData.distance,
+          efficiency: newEfficiency,
+          co2Saved: route.co2Saved + co2Saved,
+          optimized: true,
+          // Update coordinates with the actual route points from Google Maps
+          coordinates: optimizedRouteData.coordinates
+        });
+        
+        res.json({
+          success: true,
+          route: updatedRoute,
+          optimizationDetails: {
+            distanceReduction: route.distance - optimizedRouteData.distance,
+            efficiencyImprovement: newEfficiency - route.efficiency,
+            additionalCO2Saved: co2Saved,
+            timeSavings: optimizedRouteData.savings.duration // time savings in seconds
+          },
+          // Include polyline for frontend visualization
+          polyline: optimizedRouteData.polyline
+        });
+      } catch (googleMapsError) {
+        console.error("Google Maps API error:", googleMapsError);
+        
+        // Fallback to simple simulation if Google Maps API fails
+        const optimizationFactor = optimizationLevel / 100;
+        const co2Factor = co2Priority === "High" ? 1.2 : co2Priority === "Medium" ? 1.0 : 0.8;
+        
+        const optimizedDistance = route.distance * (1 - (optimizationFactor * 0.2));
+        const optimizedEfficiency = Math.min(98, route.efficiency + (optimizationFactor * 10));
+        const optimizedCO2Saved = route.co2Saved * (1 + (optimizationFactor * co2Factor * 0.3));
+        
+        const updatedRoute = await storage.updateRoute(id, {
+          distance: optimizedDistance,
+          efficiency: optimizedEfficiency,
+          co2Saved: optimizedCO2Saved,
+          optimized: true
+        });
+        
+        res.json({ 
+          success: true, 
+          route: updatedRoute,
+          optimizationDetails: {
+            distanceReduction: route.distance - optimizedDistance,
+            efficiencyImprovement: optimizedEfficiency - route.efficiency,
+            additionalCO2Saved: optimizedCO2Saved - route.co2Saved
+          },
+          usesFallback: true
+        });
+      }
     } catch (error) {
+      console.error("Route optimization error:", error);
       res.status(500).json({ message: "Failed to optimize route" });
     }
   });
