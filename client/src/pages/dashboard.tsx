@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import Sidebar from "@/components/dashboard/sidebar";
 import StatsCards from "@/components/dashboard/stats-cards";
 import GlobeVisualization from "@/components/dashboard/globe-visualization";
@@ -8,14 +8,19 @@ import RouteOptimizationTable from "@/components/dashboard/route-optimization-ta
 import EstimatedSavings from "@/components/dashboard/estimated-savings";
 import DemandPrediction from "@/components/dashboard/demand-prediction";
 import RouteOptimizationControls from "@/components/dashboard/route-optimization-controls";
-import { Search, Bell } from "lucide-react";
+import RouteDetails from "@/components/dashboard/route-details";
+import { Search, Bell, ArrowLeft } from "lucide-react";
 import { Avatar } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { type DashboardStats, type Route, type CO2Saving, type DemandPrediction as DemandPredictionType, type RoutePrediction } from "@shared/schema";
 
 export default function Dashboard() {
   const [isMobile, setIsMobile] = useState(false);
   const [showSidebar, setShowSidebar] = useState(true);
+  const [selectedRoute, setSelectedRoute] = useState<Route | null>(null);
+  const queryClient = useQueryClient();
 
   useEffect(() => {
     const checkWidth = () => {
@@ -50,6 +55,24 @@ export default function Dashboard() {
   const { data: routePredictions, isLoading: isLoadingRoutePredictions } = useQuery<RoutePrediction[]>({
     queryKey: ['/api/route-predictions'],
   });
+
+  const handleRouteClick = (route: Route) => {
+    setSelectedRoute(route);
+  };
+
+  const handleRouteUpdated = (updatedRoute: Route) => {
+    if (routes) {
+      // Update the routes cache with the new data
+      const updatedRoutes = routes.map(r => 
+        r.id === updatedRoute.id ? updatedRoute : r
+      );
+      
+      queryClient.setQueryData(['/api/routes'], updatedRoutes);
+      
+      // Also update the selected route
+      setSelectedRoute(updatedRoute);
+    }
+  };
 
   const isLoading = isLoadingStats || isLoadingRoutes || isLoadingCO2 || isLoadingDemand || isLoadingRoutePredictions;
   

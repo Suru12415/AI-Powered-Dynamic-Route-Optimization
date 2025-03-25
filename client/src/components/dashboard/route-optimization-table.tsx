@@ -1,11 +1,12 @@
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Globe, Filter } from "lucide-react";
+import { Globe, Filter, ArrowUpRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { type Route } from "@shared/schema";
 
 interface RouteOptimizationTableProps {
   routes: Route[];
+  onRouteClick?: (route: Route) => void;
 }
 
 const ProgressBar = ({ value }: { value: number }) => (
@@ -45,7 +46,7 @@ const StatusBadge = ({ status }: { status: string }) => {
   );
 }
 
-export default function RouteOptimizationTable({ routes }: RouteOptimizationTableProps) {
+export default function RouteOptimizationTable({ routes, onRouteClick }: RouteOptimizationTableProps) {
   return (
     <Card className="bg-slate-800 border-slate-700 overflow-hidden">
       <CardHeader className="px-4 py-3 border-b border-slate-700 flex-row justify-between items-center">
@@ -84,7 +85,11 @@ export default function RouteOptimizationTable({ routes }: RouteOptimizationTabl
           </thead>
           <tbody className="divide-y divide-slate-700">
             {routes.map((route) => (
-              <tr key={route.id}>
+              <tr 
+                key={route.id} 
+                className={onRouteClick ? "cursor-pointer hover:bg-slate-700/50" : ""}
+                onClick={() => onRouteClick && onRouteClick(route)}
+              >
                 <td className="px-4 py-3 whitespace-nowrap">
                   <div className="flex items-center">
                     <div className="h-8 w-8 flex-shrink-0 rounded bg-blue-500 bg-opacity-10 flex items-center justify-center">
@@ -106,7 +111,14 @@ export default function RouteOptimizationTable({ routes }: RouteOptimizationTabl
                   <div className="font-mono text-green-400 font-medium">{route.co2Saved.toFixed(2)} tons</div>
                 </td>
                 <td className="px-4 py-3 whitespace-nowrap">
-                  <StatusBadge status={route.status} />
+                  <div className="flex items-center justify-between">
+                    <StatusBadge status={route.status} />
+                    {onRouteClick && (
+                      <Button size="sm" variant="ghost" className="h-6 w-6 p-0 ml-2">
+                        <ArrowUpRight className="h-3 w-3" />
+                      </Button>
+                    )}
+                  </div>
                 </td>
               </tr>
             ))}
