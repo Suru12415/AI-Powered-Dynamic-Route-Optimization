@@ -9,18 +9,17 @@ import { useEffect } from "react";
 // Redirect component to handle route redirects
 function Redirect({ to }: { to: string }) {
   const router = useRouter();
-
+  
   useEffect(() => {
-    const [, setLocation] = router;
-    setLocation(to);
+    router[1](to);
   }, [to, router]);
-
+  
   return null;
 }
 
 function Router() {
   const [location] = useLocation();
-
+  
   return (
     <Switch>
       <Route path="/" component={Dashboard} />
