@@ -146,7 +146,10 @@ export default function Dashboard() {
                   <EmissionsChart co2Data={co2Savings || []} />
 
                   {/* Route Optimization Table */}
-                  <RouteOptimizationTable routes={routes || []} />
+                  <RouteOptimizationTable 
+                    routes={routes || []} 
+                    onRouteClick={handleRouteClick}
+                  />
                 </div>
 
                 {/* Right Column */}
@@ -164,6 +167,31 @@ export default function Dashboard() {
                   <RouteOptimizationControls routes={routes || []} />
                 </div>
               </div>
+              
+              {/* Route Details Dialog */}
+              <Dialog open={!!selectedRoute} onOpenChange={(open) => !open && setSelectedRoute(null)}>
+                <DialogContent className="max-w-4xl">
+                  <DialogHeader>
+                    <DialogTitle className="flex items-center">
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className="h-7 w-7 mr-2" 
+                        onClick={() => setSelectedRoute(null)}
+                      >
+                        <ArrowLeft className="h-4 w-4" />
+                      </Button>
+                      Route Details
+                    </DialogTitle>
+                  </DialogHeader>
+                  {selectedRoute && (
+                    <RouteDetails 
+                      route={selectedRoute}
+                      onRouteUpdated={handleRouteUpdated}
+                    />
+                  )}
+                </DialogContent>
+              </Dialog>
             </>
           )}
         </div>
