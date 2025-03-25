@@ -100,7 +100,12 @@ export class MemStorage implements IStorage {
 
   async createRoute(insertRoute: InsertRoute): Promise<Route> {
     const id = this.currentRouteId++;
-    const route: Route = { ...insertRoute, id };
+    // Ensure optimized has a default value if not provided
+    const routeWithDefaults = {
+      ...insertRoute,
+      optimized: insertRoute.optimized ?? false
+    };
+    const route: Route = { ...routeWithDefaults, id };
     this.routes.set(id, route);
     return route;
   }
@@ -109,6 +114,11 @@ export class MemStorage implements IStorage {
     const existingRoute = this.routes.get(id);
     if (!existingRoute) {
       return undefined;
+    }
+    
+    // Ensure optimized has a value if it's being updated
+    if (routeUpdate.optimized === undefined && 'optimized' in routeUpdate) {
+      routeUpdate.optimized = false;
     }
     
     const updatedRoute: Route = { ...existingRoute, ...routeUpdate };

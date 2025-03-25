@@ -216,13 +216,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       try {
         // Check if we have origin and destination coordinates or addresses
-        if (!route.coordinates || route.coordinates.length < 2) {
-          throw new Error("Route coordinates are missing");
+        if (!route.coordinates || !Array.isArray(route.coordinates) || route.coordinates.length < 2) {
+          throw new Error("Route coordinates are missing or invalid");
         }
         
         // The first coordinate is origin, the second is destination
-        const originCoord = route.coordinates[0];
-        const destinationCoord = route.coordinates[1];
+        const originCoord = route.coordinates[0] as [number, number];
+        const destinationCoord = route.coordinates[1] as [number, number];
         
         // Swap lat/lng order for Google Maps API (it expects [lat, lng])
         const origin: [number, number] = [originCoord[1], originCoord[0]];
@@ -240,13 +240,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         // Calculate CO2 savings (tons)
         // This is based on the average CO2 emissions per km for the transport type
-        const emissionsPerKm = {
+        const emissionsPerKm: Record<string, number> = {
           "Air": 0.25,
           "Ground": 0.096,
           "Maritime": 0.012,
           "Ground/Air": 0.18
         };
-        const emissionFactor = emissionsPerKm[route.transportType] || 0.15;
+        const emissionFactor = emissionsPerKm[route.transportType as keyof typeof emissionsPerKm] || 0.15;
         
         // Calculate original CO2 emissions (tons)
         const originalCO2 = (route.distance * emissionFactor) / 1000;

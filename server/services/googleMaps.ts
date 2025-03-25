@@ -140,7 +140,7 @@ export async function getOptimizedRoute(
       params: {
         origin: originStr,
         destination: destinationStr,
-        mode: TravelMode.DRIVING,
+        mode: 'driving' as TravelMode,
         key: process.env.GOOGLE_MAPS_API_KEY || ''
       }
     };
@@ -160,7 +160,7 @@ export async function getOptimizedRoute(
       params: {
         origin: originStr,
         destination: destinationStr,
-        mode: TravelMode.DRIVING,
+        mode: 'driving' as TravelMode,
         alternatives: true, // Request alternative routes
         key: process.env.GOOGLE_MAPS_API_KEY || ''
       }
