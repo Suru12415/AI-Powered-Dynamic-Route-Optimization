@@ -30,7 +30,7 @@ export default function RouteDetails({ route, onRouteUpdated }: RouteDetailsProp
   const handleOptimize = async () => {
     setIsOptimizing(true);
     try {
-      interface OptimizeRouteResponse {
+      const response = await apiRequest<{
         success: boolean;
         route: Route;
         usesFallback?: boolean;
@@ -40,9 +40,7 @@ export default function RouteDetails({ route, onRouteUpdated }: RouteDetailsProp
           efficiencyImprovement: number;
           additionalCO2Saved: number;
         };
-      }
-      
-      const response = await apiRequest<OptimizeRouteResponse>({
+      }>({
         method: "POST",
         url: "/api/optimize-route",
         data: {
