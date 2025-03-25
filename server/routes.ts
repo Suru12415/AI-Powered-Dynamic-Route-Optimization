@@ -283,8 +283,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
           // Include polyline for frontend visualization
           polyline: optimizedRouteData.polyline
         });
-      } catch (googleMapsError) {
+      } catch (googleMapsError: any) {
         console.error("Google Maps API error:", googleMapsError);
+
+        // Determine if this is an API key authorization issue
+        let errorMessage = "Google Maps API error occurred";
+        let needsApiSetup = false;
+        
+        if (googleMapsError.message && googleMapsError.message.includes('API key is not authorized')) {
+          errorMessage = "The Google Maps API key is not authorized for the Directions API";
+          needsApiSetup = true;
+        } else if (googleMapsError.message && googleMapsError.message.includes('API key is missing')) {
+          errorMessage = "The Google Maps API key is missing";
+          needsApiSetup = true;
+        }
         
         // Fallback to simple simulation if Google Maps API fails
         const optimizationFactor = optimizationLevel / 100;
@@ -309,7 +321,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
             efficiencyImprovement: optimizedEfficiency - route.efficiency,
             additionalCO2Saved: optimizedCO2Saved - route.co2Saved
           },
-          usesFallback: true
+          usesFallback: true,
+          error: {
+            message: errorMessage,
+            needsApiSetup: needsApiSetup,
+            details: googleMapsError.message
+          }
         });
       }
     } catch (error) {

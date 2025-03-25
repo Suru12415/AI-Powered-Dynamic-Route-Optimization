@@ -16,6 +16,12 @@ export async function getRouteDetails(
   mode: 'driving' | 'walking' | 'bicycling' | 'transit' = 'driving'
 ): Promise<{ distance: number; duration: number; polyline: string }> {
   try {
+    // Check if API key is available
+    const apiKey = process.env.GOOGLE_MAPS_API_KEY;
+    if (!apiKey) {
+      throw new Error("Google Maps API key is missing. Please set the GOOGLE_MAPS_API_KEY environment variable.");
+    }
+
     // Format origin and destination to string format for Google Maps API
     const originStr = Array.isArray(origin) ? `${origin[0]},${origin[1]}` : origin;
     const destinationStr = Array.isArray(destination) ? `${destination[0]},${destination[1]}` : destination;
@@ -25,8 +31,8 @@ export async function getRouteDetails(
       params: {
         origin: originStr,
         destination: destinationStr,
-        mode: mode.toUpperCase() as TravelMode,
-        key: process.env.GOOGLE_MAPS_API_KEY || ''
+        mode: mode.toLowerCase() as TravelMode, // Must be lowercase for the API
+        key: apiKey
       }
     };
 
@@ -34,6 +40,12 @@ export async function getRouteDetails(
     const response = await client.directions(request);
     const data = response.data;
 
+    if (data.status === 'REQUEST_DENIED') {
+      const errorMsg = data.error_message || 'Request denied';
+      console.error("Google Maps API error:", errorMsg);
+      throw new Error(`API key is not authorized for Directions API. Please enable the Directions API in the Google Cloud Console for this API key.`);
+    }
+    
     if (data.status !== 'OK' || !data.routes.length) {
       throw new Error(`Google Maps API error: ${data.status}`);
     }
@@ -131,6 +143,12 @@ export async function getOptimizedRoute(
   };
 }> {
   try {
+    // Check if API key is available
+    const apiKey = process.env.GOOGLE_MAPS_API_KEY;
+    if (!apiKey) {
+      throw new Error("Google Maps API key is missing. Please set the GOOGLE_MAPS_API_KEY environment variable.");
+    }
+
     // Format origin and destination
     const originStr = Array.isArray(origin) ? `${origin[0]},${origin[1]}` : origin;
     const destinationStr = Array.isArray(destination) ? `${destination[0]},${destination[1]}` : destination;
@@ -141,11 +159,17 @@ export async function getOptimizedRoute(
         origin: originStr,
         destination: destinationStr,
         mode: 'driving' as TravelMode,
-        key: process.env.GOOGLE_MAPS_API_KEY || ''
+        key: apiKey
       }
     };
 
     const baselineResponse = await client.directions(baselineRequest);
+    
+    if (baselineResponse.data.status === 'REQUEST_DENIED') {
+      const errorMsg = baselineResponse.data.error_message || 'Request denied';
+      console.error("Google Maps API error:", errorMsg);
+      throw new Error(`API key is not authorized for Directions API. Please enable the Directions API in the Google Cloud Console for this API key.`);
+    }
     
     if (baselineResponse.data.status !== 'OK' || !baselineResponse.data.routes.length) {
       throw new Error(`Google Maps API error: ${baselineResponse.data.status}`);
@@ -162,11 +186,17 @@ export async function getOptimizedRoute(
         destination: destinationStr,
         mode: 'driving' as TravelMode,
         alternatives: true, // Request alternative routes
-        key: process.env.GOOGLE_MAPS_API_KEY || ''
+        key: apiKey // Use the validated API key
       }
     };
 
     const optimizedResponse = await client.directions(optimizedRequest);
+    
+    if (optimizedResponse.data.status === 'REQUEST_DENIED') {
+      const errorMsg = optimizedResponse.data.error_message || 'Request denied';
+      console.error("Google Maps API error:", errorMsg);
+      throw new Error(`API key is not authorized for Directions API. Please enable the Directions API in the Google Cloud Console for this API key.`);
+    }
     
     if (optimizedResponse.data.status !== 'OK' || !optimizedResponse.data.routes.length) {
       throw new Error(`Google Maps API error: ${optimizedResponse.data.status}`);
